@@ -1,0 +1,491 @@
+prog 1:
+
+set ns [new Simulator] ;#creating a new variable ns
+set tf [open p1.tr w] ;#open trace file p1.tr in writable mode
+$ns trace-all $tf ;#main class object ns linked with trace file object tf
+set nf [open p1.nam w] ;#open nam file p1.nam in writable mode
+$ns namtrace-all $nf ;#main class object ns linked with nam file object nf
+set n0 [$ns node] ;#creation of nodes
+set n1 [$ns node]
+set n2 [$ns node]
+set n3 [$ns node]
+20
+$ns duplex-link $n0 $n2 20Mb 10ms DropTail ;#forming duplex connection between the nodes
+$ns duplex-link $n1 $n2 10Mb 10ms DropTail ;#and vary the bandwidth in this link
+$ns duplex-link $n2 $n3 0.7Mb 10ms DropTail
+$ns set queue-limit $n0 $n2 10 ;#Assigning Queuesize between the nodes
+$ns set queue-limit $n1 $n2 10
+$ns set queue-limit $n2 $n3 5
+set udp0 [new Agent/UDP] ;#creating object(agent) for the class Agent/UDP
+set udp1 [new Agent/UDP] ;#creating object(agent) for the class Agent/UDP
+set null [new Agent/Null] ;#creating Destination object(agent) for the class Agent/Null
+set cbr0 [new Application/Traffic/CBR] ;#creating object(agent) for the class
+;#Application/Traffic/CBR
+set cbr1 [new Application/Traffic/CBR]
+$ns attach-agent $n0 $udp0 ;#Attaching agents
+$ns attach-agent $n1 $udp1
+$ns attach-agent $n2 $null
+$ns attach-agent $n3 $null
+$cbr0 attach-agent $udp0
+$cbr1 attach-agent $udp1
+$ns connect $udp0 $null ;#connecting source and destination node agents
+$ns connect $udp1 $null
+$cbr0 set packetSize_ 512 ;#assigning values of packet size and time interval
+$cbr0 set interval_ 0.001
+$cbr1 set packetSize_ 512
+$cbr1 set interval_ 0.005
+21
+proc finish { } { ;#terminate Simulation
+global ns nf tf
+$ns flush-trace
+close $tf
+close $nf
+exec nam p1.nam &
+exit 0
+}
+$ns at 0.0 "$cbr0 start" ;#Setting time for start and stop the packet transmission.
+$ns at 10.0 "$cbr0 stop"
+$ns at 2.0 "$cbr1 start"
+$ns at 12.0 "$cbr1 stop"
+$ns at 13.0 "finish" ;#Setting time to stop the simulation
+$ns run
+
+
+
+
+(AWK) SCRIPT:
+BEGIN{
+count=0
+}
+{
+if($1=="d")
+count++;
+}
+END {
+printf("Number of packets dropped: %d\n",count);
+}
+
+prog 2:
+
+set ns [new Simulator]
+
+set tf [open p2.tr w]
+$ns trace-all $tf
+
+set nf [open p2.nam w]
+$ns namtrace-all $nf
+set n0 [$ns node]
+set n1 [$ns node]
+set n2 [$ns node]
+set n3 [$ns node]
+$ns duplex-link $n0 $n2 20Mb 10ms DropTail
+$ns duplex-link $n1 $n2 10Mb 10ms DropTail
+$ns duplex-link $n2 $n3 0.7Mb 10ms DropTail
+$ns set queue-limit $n0 $n2 10
+27
+$ns set queue-limit $n1 $n2 10
+$ns set queue-limit $n2 $n3 5
+set tcp [new Agent/TCP]
+set udp [new Agent/UDP]
+
+set tcpsink [new Agent/TCPSink]
+set null [new Agent/Null]
+
+set cbr [new Application/Traffic/CBR]
+set ftp [new Application/FTP]
+$ns attach-agent $n0 $tcp
+$ns attach-agent $n1 $udp
+$ns attach-agent $n3 $tcpsink
+$ns attach-agent $n3 $null
+
+$ftp attach-agent $tcp
+$cbr attach-agent $udp
+
+$ns connect $udp $null
+$ns connect $tcp $tcpsink
+$cbr set packetSize_ 512
+$cbr set interval_ 0.005
+$ftp set packetSize_ 512
+$ftp set interval_ 0.005
+proc finish {} {
+global ns nf tf
+$ns flush-trace
+close $tf
+close $nf
+exec nam p2.nam &
+exit 0
+}
+$ns at 0.0 "$ftp start"
+$ns at 10.0 "$ftp stop"
+$ns at 2.0 "$cbr start"
+$ns at 12.0 "$cbr stop"
+
+$ns at 13.0 "finish"
+$ns run
+28
+
+
+
+AWK SCRIPT:
+BEGIN{
+tcp=0;
+cbr=0;
+}
+{
+if($1=="-" && $5=="tcp")
+tcp++
+if($1=="-" && $5=="cbr")
+cbr++
+}
+END{
+printf("\n no.of tcp packets sent= %d \n",tcp);
+printf("\n no.of cbr packets sent= %d \n",cbr);
+} 
+
+prog 3:
+
+set ns [new Simulator]
+set tf [open p3.tr w]
+$ns trace-all $tf
+set nf [open p3.nam w]
+$ns namtrace-all $nf
+$ns color 1 "blue"
+set n0 [$ns node]
+set n1 [$ns node]
+set n2 [$ns node]
+set n3 [$ns node]
+set n4 [$ns node]
+set n5 [$ns node]
+set n6 [$ns node]
+$n1 label "Source/UDP"
+$n3 label "Error Node"
+$n5 label "Destination"
+;#The below code is used to create a two Lans (Lan1 and #Lan2).
+$ns make-lan "$n0 $n1 $n2 $n3" 100Mb 10ms LL Queue/DropTail Mac/802_3
+33
+$ns make-lan "$n4 $n5 $n6 " 100Mb 10ms LL Queue/DropTail Mac/802_3
+$ns duplex-link $n3 $n6 100Mb 10ms DropTail
+set udp1 [new Agent/UDP]
+set cbr1 [ new Application/Traffic/CBR]
+set null5 [new Agent/Null]
+$ns attach-agent $n1 $udp1
+$cbr1 attach-agent $udp1
+$ns attach-agent $n5 $null5
+$ns connect $udp1 $null5
+$cbr1 set packetSize_ 1000
+$cbr1 set interval_ 0.0001 ;# This is the data rate.Change
+ ;# this to vary the throughput.
+set err [new ErrorModel] ;# The code is used to add an error model
+$ns lossmodel $err $n3 $n6 ;#between the nodes n3 and n6.
+$err set rate_ 0.1 ;# This is the error rate. Change this
+ ;#rate to add errors between n3 and n6.
+$udp1 set class_ 1
+proc finish { } {
+global nf ns tf
+close $nf
+close $tf
+exec nam p3.nam &
+exit 0
+}
+$ns at 0.1 "$cbr1 start"
+$ns at 5.0 "finish"
+$ns run
+
+
+AWK SCRIPT:
+BEGIN {
+ Rpacketsize=0;
+ Rtimeinterval=0;
+}
+{
+if ($1=="r" && $3=="3" && $4=="6")
+Rpacketsize = Rpacketsize+$6;
+Rtimeinterval=$2;
+}
+END {
+printf ("throughput:%f Mbps\n",(Rpacketsize/Rtimeinterval)*(8/1000000));
+}
+
+prog-4:
+
+set ns [new Simulator]
+set tf [open p4.tr w]
+$ns trace-all $tf
+set nf [open p4.nam w]
+$ns namtrace-all $nf
+set n0 [$ns node]
+set n1 [$ns node]
+set n2 [$ns node]
+set n3 [$ns node]
+$ns make-lan "$n0 $n1 $n2 $n3" 10Mb 10ms LL Queue/DropTail Mac/802_3
+set tcp1 [new Agent/TCP]
+set ftp1 [new Application/FTP]
+set sink1 [new Agent/TCPSink]
+set tcp2 [new Agent/TCP]
+40
+set ftp2 [new Application/FTP]
+set sink2 [new Agent/TCPSink]
+$ns attach-agent $n0 $tcp1
+$ftp1 attach-agent $tcp1
+$ns attach-agent $n3 $sink1
+$ns connect $tcp1 $sink1
+$ns attach-agent $n2 $tcp2
+$ftp2 attach-agent $tcp2
+$ns attach-agent $n1 $sink2
+$ns connect $tcp2 $sink2
+set file1 [open file1.tr w]
+$tcp1 attach $file1
+$tcp1 trace cwnd_
+$tcp1 set maxcwnd_ 10
+set file2 [open file2.tr w]
+$tcp2 attach $file2
+$tcp2 trace cwnd_
+$ns color 1 "red"
+$ns color 2 "blue"
+$tcp1 set class_ 1
+$tcp2 set class_ 2
+proc finish { } {
+global nf tf ns
+$ns flush-trace
+exec nam p4.nam &
+close $nf
+close $tf
+exit 0
+}
+$ns at 0.1 "$ftp1 start"
+$ns at 1.5 "$ftp1 stop"
+$ns at 2 "$ftp1 start"
+$ns at 3 "$ftp1 stop"
+$ns at 0.2 "$ftp2 start"
+$ns at 2 "$ftp2 stop"
+$ns at 2.5 "$ftp2 start"
+$ns at 4 "$ftp2 stop"
+$ns at 5.0 "finish"
+$ns run
+
+
+
+
+AWK SCRIPT:
+BEGIN{
+}
+{
+if($6=="cwnd_")
+printf("%f\t%f\t\n",$1,$7);
+}
+END{
+}
+
+
+prog-5
+
+set ns [new Simulator]
+set tf [open p5.tr w]
+$ns trace-all $tf
+set nf [open p5.nam w]
+$ns namtrace-all-wireless $nf 1000 1000
+set topo [new Topography]
+$topo load_flatgrid 1000 1000
+$ns node-config -adhocRouting DSDV \
+-llType LL \
+-macType Mac/802_11 \
+-ifqType Queue/DropTail \
+-ifqLen 50 \
+-phyType Phy/WirelessPhy \
+-channelType Channel/WirelessChannel \
+-propType Propagation/TwoRayGround \
+-antType Antenna/OmniAntenna \
+-topoInstance $topo \
+-agentTrace ON \
+-routerTrace ON
+create-god 3
+set n0 [$ns node]
+set n1 [$ns node]
+set n2 [$ns node]
+$n0 label "tcp0"
+$n1 label "sink1/tcp1"
+$n2 label "sink2"
+$ns initial_node_pos $n0 50
+$ns initial_node_pos $n1 50
+$ns initial_node_pos $n2 50
+#The below code is used to give the initial node positions.
+$n0 set X_ 50
+$n0 set Y_ 50
+$n1 set X_ 200
+$n1 set Y_ 200
+$n2 set X_ 700
+$n2 set Y_ 700
+$ns at 0.1 "$n0 setdest 50 50 15"
+$ns at 0.1 "$n1 setdest 200 200 25"
+$ns at 0.1 "$n2 setdest 700 700 25"
+set tcp0 [new Agent/TCP]
+set ftp0 [new Application/FTP]
+set sink1 [new Agent/TCPSink]
+set tcp1 [new Agent/TCP]
+set ftp1 [new Application/FTP]
+set sink2 [new Agent/TCPSink]
+$ns attach-agent $n0 $tcp0
+$ftp0 attach-agent $tcp0
+$ns attach-agent $n1 $sink1
+$ns connect $tcp0 $sink1
+$ns attach-agent $n1 $tcp1
+$ftp1 attach-agent $tcp1
+$ns attach-agent $n2 $sink2
+$ns connect $tcp1 $sink2
+$ns at 0.1 "$ftp0 start"
+$ns at 0.1 "$ftp1 start"
+#The below code is used to provide the node movements.
+$ns at 100 "$n1 setdest 550 550 15"
+$ns at 190 "$n1 setdest 100 100 15"
+proc finish {} {
+global ns nf tf
+$ns flush-trace
+exec nam p5.nam &
+close $tf
+exit 0
+}
+$ns at 250 "finish"
+$ns run
+
+
+
+AWK SCRIPT:
+#include<stdio.h>
+count1=0
+count2=0
+pack1=0
+pack2=0
+time1=0
+time2=0
+}
+{
+if($1=="r"&& $3=="_1_" && $4=="AGT")
+{
+count1++
+pack1=pack1+$8
+time1=$2
+}
+if($1=="r"&& $3=="_2_"&& $4=="AGT")
+{
+count2++
+pack2=pack2+$8
+time2=$2
+}
+}
+END{
+printf("The Throughput from n0 to n1: %fMbps\n",((count1*pack1*8)/time1*1000000)))
+Printf("The Throughput from n1 to n2:%f Mbps",
+((count2* pack2 * 8) /(time2*1000000)))
+}
+
+prog-6
+
+set ns [new Simulator]
+set nr [open p6.tr w]
+$ns trace-all $nr
+set nf [open p6.nam w]
+$ns namtrace-all $nf
+#Using routing protocol
+$ns rtproto LS
+#Creation of Nodes
+for {set i 0} {$i < 12} {incr i} {
+ set n($i) [$ns node]
+ }
+#Creation of links
+$ns duplex-link $n(0) $n(1) 1Mb 10ms DropTail
+$ns duplex-link $n(1) $n(2) 1Mb 10ms DropTail
+$ns duplex-link $n(2) $n(3) 1Mb 10ms DropTail
+$ns duplex-link $n(3) $n(4) 1Mb 10ms DropTail
+$ns duplex-link $n(4) $n(5) 1Mb 10ms DropTail
+$ns duplex-link $n(5) $n(6) 1Mb 10ms DropTail
+$ns duplex-link $n(6) $n(7) 1Mb 10ms DropTail
+55
+$ns duplex-link $n(7) $n(8) 1Mb 10ms DropTail
+$ns duplex-link $n(8) $n(0) 1Mb 10ms DropTail
+$ns duplex-link $n(0) $n(9) 1Mb 10ms DropTail
+$ns duplex-link $n(1) $n(10) 1Mb 10ms DropTail
+$ns duplex-link $n(9) $n(11) 1Mb 10ms DropTail
+$ns duplex-link $n(10) $n(11) 1Mb 10ms DropTail
+$ns duplex-link $n(11) $n(5) 1Mb 10ms DropTail
+#Set up UDP connection
+set udp0 [new Agent/UDP]
+set cbr0 [new Application/Traffic/CBR]
+set null0 [new Agent/Null]
+set udp1 [new Agent/UDP]
+set cbr1 [new Application/Traffic/CBR]
+set null1 [new Agent/Null]
+$ns attach-agent $n(0) $udp0
+$cbr0 attach-agent $udp0
+$ns attach-agent $n(5) $null0
+$ns connect $udp0 $null0
+$ns attach-agent $n(1) $udp1
+$cbr1 attach-agent $udp1
+$ns attach-agent $n(5) $null1
+$ns connect $udp1 $null1
+#Set up CBR over UDP connection
+$cbr0 set packetSize_ 500
+$cbr0 set interval_ 0.005
+$cbr1 set packetSize_ 500
+$cbr1 set interval_ 0.005
+#Schedule events for CBR and FTP agents
+$ns at 0.1 "$cbr0 start"
+$ns at 0.1 "$cbr1 start"
+$ns rtmodel-at 10.0 down $n(11) $n(5) ;# communication link between node 11
+ ;#to 5 disconnected
+$ns rtmodel-at 30.0 up $n(11) $n(5) ;# communication link between node 11
+ ;#to 5 reconnected
+$ns rtmodel-at 15.0 down $n(7) $n(6)
+$ns rtmodel-at 20.0 up $n(7) $n(6)
+$ns color 1 "green"
+$ns color 2 "blue"
+$udp0 set class_ 1
+$udp1 set class_ 2
+#Define procedure to clean up
+proc finish { } {
+ global ns nr nf
+ $ns flush-trace
+ close $nf
+ close $nr
+ exec nam p6.nam &
+ exit 0
+}
+$ns at 45.0 "$cbr0 stop"
+$ns at 45.0 "$cbr1 stop"
+$ns at 50.0 "finish"
+#Run the simulation
+$ns run
+AWK SCRIPT:
+BEGIN {
+pksend = 0
+pkreceive = 0
+pkdrop = 0
+pkrouting = 0
+}
+#Executed for each line of input file thru.tr
+{
+#For udp packets
+if ( $1=="+" && ($3=="0" || $3=="11") && $5=="cbr" )
+{
+pksend++;
+}
+if ( $1=="r" && $4=="5" && $5=="cbr" )
+{
+pkreceive++;
+}
+if ( $1=="d" )
+{
+pkdrop++;
+}
+if ( $1=="r" && ($5=="rtProtoDV" || $5=="rtProtoLS") )
+{
+pkrouting++;
+}
+}
+END {
+print "No of send packets = " pksend
+print "No of received packets = " pkreceive
+print "No of dropped packets = " pkdrop
+print "No of routing packets = " pkrouting
+print "Normalized Overhead (routing/received), NOH = " pkrouting/pkreceive
+print "Packet Delivery Ratio (received/send), PDR = " pkreceive/pksend
+}
